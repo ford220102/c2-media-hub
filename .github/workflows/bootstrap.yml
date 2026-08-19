@@ -1,4 +1,4 @@
-name: Bootstrap and Auto Build
+name: Auto Build
 
 on:
   push:
@@ -6,25 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  bootstrap:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Expand uploaded source
-        if: ${{ hashFiles('c2-media-hub-source.zip') != '' }}
-        run: |
-          unzip -o c2-media-hub-source.zip
-          rm c2-media-hub-source.zip
-          rm -f .github/workflows/build.yml
-          rm -f .github/workflows/build.yml
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git commit -m "Expand C2 Media Hub source"
-          git push
       - uses: pnpm/action-setup@v4
         with:
           version: 11
@@ -32,8 +20,15 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Allow required native builds
-        run: printf 'allowBuilds:\n  esbuild: true\n  sharp: true\n  workerd: true\nverifyDepsBeforeRun: false\n' > pnpm-workspace.yaml
+      - name: Configure native dependencies
+        run: |
+          printf '%s\n' \
+            'allowBuilds:' \
+            '  esbuild: true' \
+            '  sharp: true' \
+            '  workerd: true' \
+            'verifyDepsBeforeRun: false' \
+            > pnpm-workspace.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - uses: actions/upload-artifact@v4
