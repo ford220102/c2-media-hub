@@ -1,4 +1,4 @@
-name: Auto Build
+name: Build and Publish
 
 on:
   push:
@@ -7,10 +7,19 @@ on:
 
 permissions:
   contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -35,4 +44,10 @@ jobs:
         with:
           name: c2-media-hub-build
           path: dist/
-          if-no-files-found: error
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Publish GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
