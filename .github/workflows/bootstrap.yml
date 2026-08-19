@@ -19,6 +19,7 @@ jobs:
           unzip -o c2-media-hub-source.zip
           rm c2-media-hub-source.zip
           rm -f .github/workflows/build.yml
+          rm -f .github/workflows/build.yml
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
@@ -31,6 +32,8 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - name: Allow required native builds
+        run: printf 'onlyBuiltDependencies:\n  - esbuild\n  - sharp\n  - workerd\n' > pnpm-workspace.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - uses: actions/upload-artifact@v4
