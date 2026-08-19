@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root { color-scheme: dark; --ink: #f3f0e8; --muted: #aaa99f; }
+* { box-sizing: border-box; }
+html, body { min-height: 100%; margin: 0; background: #090a09; color: var(--ink); }
+body { font-family: Arial, Helvetica, sans-serif; background: radial-gradient(circle at 68% 20%, #202820 0, #0d0f0d 38%, #080908 72%); }
+button, input { font: inherit; }
+button { color: inherit; }
+.shell { min-height: 100vh; padding: 5.5vh 5.5vw 4vh; display: flex; flex-direction: column; }
+.topbar { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 1px solid #343834; padding-bottom: 2.5vh; }
+.eyebrow { color: #8fb997; font-weight: 800; letter-spacing: .2em; font-size: clamp(11px, .85vw, 16px); margin: 0 0 .8rem; }
+h1 { margin: 0; font-size: clamp(34px, 4vw, 72px); letter-spacing: -.055em; line-height: .9; }
+.status { font-size: clamp(12px, 1vw, 18px); color: var(--muted); display: flex; gap: .7rem; align-items: center; }
+.status span { width: 9px; height: 9px; border-radius: 50%; background: #70df81; box-shadow: 0 0 18px #70df81; }
+.hero { flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 2vw; align-items: stretch; padding: 5vh 0 4vh; min-height: 430px; }
+.tile { border: 1px solid #353a35; border-radius: 28px; padding: clamp(24px, 3vw, 54px); text-align: left; position: relative; overflow: hidden; cursor: pointer; background: linear-gradient(145deg, #1d211e, #111311); transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease; display: flex; flex-direction: column; align-items: flex-start; }
+.tile::after { content: ""; position: absolute; width: 28vw; height: 28vw; right: -10vw; bottom: -15vw; border-radius: 50%; background: rgba(255,255,255,.045); }
+.tile:focus-visible, .tile:hover { outline: none; transform: translateY(-7px) scale(1.008); border-color: #dce6dc; box-shadow: 0 22px 70px rgba(0,0,0,.45); }
+.jellyfin:focus-visible { box-shadow: 0 0 0 5px #9b64ff, 0 22px 70px #39245f; }
+.xbox { background: linear-gradient(145deg, #17301b, #101a12); }
+.xbox:focus-visible { box-shadow: 0 0 0 5px #62d36b, 0 22px 70px #163b1b; }
+.tileIndex { align-self: flex-end; color: #777d77; font-weight: 800; letter-spacing: .15em; }
+.tileMark { width: clamp(72px, 7vw, 118px); height: clamp(72px, 7vw, 118px); border-radius: 26px; display: grid; place-items: center; font-size: clamp(40px, 4vw, 68px); font-weight: 900; margin: auto 0 2.5vh; background: linear-gradient(135deg, #6332ba, #bc76ff); box-shadow: inset 0 1px rgba(255,255,255,.35); }
+.xbox .tileMark { border-radius: 50%; background: #77c66c; color: #09260d; }
+.tileTitle { font-weight: 800; font-size: clamp(30px, 3.4vw, 62px); letter-spacing: -.045em; }
+.tileMeta { margin-top: .5rem; color: var(--muted); font-size: clamp(14px, 1.15vw, 20px); }
+.tileAction { margin-top: 3vh; font-size: clamp(12px, .9vw, 16px); letter-spacing: .16em; font-weight: 900; }
+.tileAction b { font-size: 1.5em; padding-left: .5rem; }
+footer { display: flex; align-items: center; justify-content: space-between; color: #858980; font-size: clamp(12px, 1vw, 17px); }
+.settings, .dialog button { border: 1px solid #454a45; background: #171a17; border-radius: 999px; padding: .85rem 1.25rem; cursor: pointer; }
+.settings:focus-visible, .dialog button:focus-visible, input:focus { outline: 3px solid #d8e7da; outline-offset: 3px; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.78); display: grid; place-items: center; padding: 2rem; backdrop-filter: blur(12px); }
+.dialog { width: min(650px, 92vw); background: #151815; border: 1px solid #4a504a; border-radius: 28px; padding: clamp(28px, 4vw, 52px); box-shadow: 0 30px 100px #000; }
+.dialog h2 { margin: 0; font-size: clamp(26px, 3vw, 46px); letter-spacing: -.04em; }
+.hint { color: var(--muted); }
+.dialog input { width: 100%; border: 1px solid #4a504a; background: #080a08; color: white; border-radius: 14px; padding: 1.1rem; margin-top: 1.2rem; }
+.message { color: #d4b7ff; }
+.dialogActions { display: flex; justify-content: flex-end; gap: .8rem; margin-top: 2rem; }
+.dialog .primary { background: #e6ede5; color: #111; border-color: #e6ede5; font-weight: 800; }
+@media (max-width: 760px) { .shell { padding: 28px; } .topbar { align-items: flex-start; } .status { display: none; } .hero { grid-template-columns: 1fr; min-height: 780px; } footer p { display: none; } }
+@media (prefers-reduced-motion: reduce) { .tile { transition: none; } }
