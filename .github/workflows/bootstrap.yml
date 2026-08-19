@@ -33,8 +33,8 @@ jobs:
           node-version: 22
           cache: pnpm
       - name: Allow required native builds
-        run: printf 'onlyBuiltDependencies:\n  - esbuild\n  - sharp\n  - workerd\n' > pnpm-workspace.yaml
-      - run: pnpm install --frozen-lockfile || true
+        run: printf 'allowBuilds:\n  esbuild: true\n  sharp: true\n  workerd: true\nverifyDepsBeforeRun: false\n' > pnpm-workspace.yaml
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build
       - uses: actions/upload-artifact@v4
         with:
