@@ -1,0 +1,39 @@
+name: Bootstrap and Auto Build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Expand uploaded source
+        if: ${{ hashFiles('c2-media-hub-source.zip') != '' }}
+        run: |
+          unzip -o c2-media-hub-source.zip
+          rm c2-media-hub-source.zip
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m "Expand C2 Media Hub source"
+          git push
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: c2-media-hub-build
+          path: dist/
+          if-no-files-found: error
