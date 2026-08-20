@@ -36,7 +36,7 @@
         font-weight: bold;
       }
       .status {
-        color: #aaa;
+        color: #fff;
       }
       .dot {
         display: inline-block;
@@ -70,7 +70,7 @@
       .tile small {
         display: block;
         font-size: clamp(14px, 2vh, 19px);
-        color: #aaa;
+        color: #fff;
         margin-top: 2vh;
       }
       .tile:focus,
@@ -93,7 +93,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        color: #aaa;
+        color: #fff;
       }
       .footBtns {
         display: flex;
@@ -104,7 +104,7 @@
       }
       .set {
         background: #171a17;
-        color: #ddd;
+        color: #fff;
         border: 1px solid #555;
         border-radius: 20px;
         padding: 1.2vh 2vw;
@@ -127,6 +127,7 @@
         border: 2px solid #555;
         border-radius: 28px;
         padding: 5vh;
+        color: #fff;
       }
       .dialog h2 {
         font-size: 4vh;
@@ -166,6 +167,7 @@
         margin: 2vh 0;
         min-height: 8vh;
         line-height: 1.6;
+        color: #fff;
       }
       .fields {
         display: grid;
@@ -173,7 +175,7 @@
         gap: 1vw;
       }
       .fields label {
-        color: #aaa;
+        color: #fff;
       }
       .fields input {
         margin-top: 0.5rem;
@@ -222,7 +224,8 @@
     <footer>
       <div class="footBtns">
         <button id="s" class="set">⚙ Jellyfin</button
-        ><button id="test" class="set">Test połączenia</button>
+        ><button id="test" class="set">Test połączenia</button
+        ><button id="device" class="set">Diagnostyka projektora</button>
       </div>
       <span>Strzałki / D-pad · OK / A</span>
     </footer>
@@ -311,6 +314,39 @@
         </div>
       </div>
     </dialog>
+    <dialog open id="devicebox" class="overlay" aria-labelledby="device-title">
+      <div class="dialog">
+        <h2 id="device-title">Prywatna diagnostyka projektora</h2>
+        <div id="device-consent">
+          <p>
+            Test odczyta tylko informacje udostępniane stronie przez
+            przeglądarkę: system, ekran, kodeki, audio, pad i dostępność Xbox.
+            Nie skanuje sieci, nie odczytuje haseł i niczego automatycznie nie
+            wysyła.
+          </p>
+          <div class="actions">
+            <button type="button" id="device-no">Nie zgadzam się</button
+            ><button type="button" id="device-yes" class="save">
+              Zgadzam się · rozpocznij
+            </button>
+          </div>
+        </div>
+        <div id="device-results" hidden>
+          <pre id="device-report" class="result" aria-live="polite"></pre>
+          <p>
+            Przeczytaj raport przed udostępnieniem. Lokalny adres IP i SSH są
+            celowo niewidoczne dla strony.
+          </p>
+          <div class="actions">
+            <button type="button" id="device-delete">Usuń raport</button
+            ><button type="button" id="device-copy">Kopiuj</button
+            ><button type="button" id="device-download" class="save">
+              Pobierz JSON
+            </button>
+          </div>
+        </div>
+      </div>
+    </dialog>
     <script>
       (function () {
         "use strict";
@@ -319,6 +355,7 @@
           d = document.getElementById("diag"),
           sb = document.getElementById("sshbox"),
           xb = document.getElementById("xboxbox"),
+          deviceBox = document.getElementById("devicebox"),
           u = document.getElementById("u"),
           j = document.getElementById("j"),
           res = document.getElementById("res"),
@@ -428,6 +465,8 @@
           if (d.className.includes("open")) d.className = "overlay";
           if (sb.className.includes("open")) sshClose();
           if (xb.className.includes("open")) xb.className = "overlay";
+          if (deviceBox.className.includes("open"))
+            deviceBox.className = "overlay";
           j.focus();
         }
         function handleGamepad(gamepad) {
@@ -500,6 +539,69 @@
             "\n" +
             q;
         }
+        async function createDeviceReport() {
+          var video = document.createElement("video"),
+            audio = document.createElement("audio"),
+            started = performance.now(),
+            xboxReachable = false,
+            sampleRate = "niedostępne";
+          try {
+            await fetch("https://www.xbox.com/play?diagnostic=" + Date.now(), {
+              mode: "no-cors",
+              cache: "no-store",
+            });
+            xboxReachable = true;
+          } catch (error) {
+            console.warn("Test Xbox nie powiódł się", error);
+          }
+          try {
+            var AudioContextClass = window.AudioContext,
+              context = new AudioContextClass();
+            sampleRate = context.sampleRate;
+            await context.close();
+          } catch (error) {
+            console.warn("Web Audio jest niedostępne", error);
+          }
+          var gamepads = Array.from(
+            navigator.getGamepads ? navigator.getGamepads() : [],
+          ).filter(Boolean);
+          return JSON.stringify(
+            {
+              consent: true,
+              generatedAt: new Date().toISOString(),
+              userAgent: navigator.userAgent,
+              platform: navigator.platform || "niedostępna",
+              language: navigator.language,
+              screen: screen.width + "x" + screen.height,
+              pixelRatio: window.devicePixelRatio,
+              online: navigator.onLine,
+              responseTimeMs: Math.round(performance.now() - started),
+              fullscreen: !!document.documentElement.requestFullscreen,
+              gamepadApi: !!navigator.getGamepads,
+              connectedGamepads: gamepads.map(function (gamepad) {
+                return gamepad.id;
+              }),
+              h264:
+                video.canPlayType('video/mp4; codecs="avc1.42E01E"') || "nie",
+              hevc: video.canPlayType('video/mp4; codecs="hvc1"') || "nie",
+              vp9: video.canPlayType('video/webm; codecs="vp9"') || "nie",
+              aac: audio.canPlayType('audio/mp4; codecs="mp4a.40.2"') || "nie",
+              opus: audio.canPlayType('audio/webm; codecs="opus"') || "nie",
+              audioSampleRateHz: sampleRate,
+              xboxReachable: xboxReachable,
+              jellyfinConfigured: !!url(localStorage.getItem(key)),
+              localIp: "ukryty przez przeglądarkę",
+              ssh: "niewykrywalne z bezpiecznej strony WWW",
+            },
+            null,
+            2,
+          );
+        }
+        function deleteDeviceReport() {
+          document.getElementById("device-report").textContent = "";
+          deviceBox.className = "overlay";
+          j.focus();
+        }
         j.onclick = function () {
           var v = url(localStorage.getItem(key));
           if (v) location.href = v;
@@ -562,6 +664,42 @@
           j.focus();
         };
         document.getElementById("go").onclick = test;
+        document.getElementById("device").onclick = function () {
+          document.getElementById("device-consent").hidden = false;
+          document.getElementById("device-results").hidden = true;
+          document.getElementById("device-report").textContent = "";
+          deviceBox.className = "overlay open";
+          document.getElementById("device-yes").focus();
+        };
+        document.getElementById("device-no").onclick = deleteDeviceReport;
+        document.getElementById("device-delete").onclick = deleteDeviceReport;
+        document.getElementById("device-yes").onclick = async function () {
+          document.getElementById("device-consent").hidden = true;
+          document.getElementById("device-results").hidden = false;
+          document.getElementById("device-report").textContent =
+            "Trwa diagnostyka…";
+          document.getElementById("device-report").textContent =
+            await createDeviceReport();
+        };
+        document.getElementById("device-copy").onclick = async function () {
+          try {
+            await navigator.clipboard.writeText(
+              document.getElementById("device-report").textContent,
+            );
+          } catch (error) {
+            console.warn("Nie udało się skopiować raportu", error);
+          }
+        };
+        document.getElementById("device-download").onclick = function () {
+          var report = document.getElementById("device-report").textContent,
+            link = document.createElement("a");
+          link.href = URL.createObjectURL(
+            new Blob([report], { type: "application/json" }),
+          );
+          link.download = "c2-device-report.json";
+          link.click();
+          URL.revokeObjectURL(link.href);
+        };
         j.focus();
         requestAnimationFrame(poll);
       })();

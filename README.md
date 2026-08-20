@@ -27,6 +27,10 @@ The Xbox tile now opens a C2 preflight screen before leaving the launcher. For t
 
 Hisense VIDAA is not currently listed among Microsoft's officially supported Xbox TV platforms; Microsoft lists select LG, Samsung, and Fire TV devices. The launcher can prepare the connection and request fullscreen, but it cannot replace VIDAA's browser codecs or WebRTC implementation. Persistent crackling therefore requires a supported HDMI client rather than a JavaScript workaround.
 
+### Consent-based projector diagnostics
+
+The **Diagnostyka projektora** action creates a report only after the person holding the remote accepts an explicit consent screen. The report stays in the browser until that person copies it or downloads `c2-device-report.json`; the launcher never uploads it. It covers the browser identity, display, declared media codecs, Web Audio sample rate, Gamepad API, connected controllers, Xbox reachability, and whether Jellyfin is configured. Browsers intentionally hide LAN addresses and cannot inspect SSH, so the report states those limits instead of scanning the owner's private network.
+
 ## SSH and the projector
 
 The web launcher cannot enable SSH on VIDAA. Do not expose port 22 on the projector unless Hisense provides an official SSH/developer option for the exact firmware. For remote maintenance, enable key-only SSH on the Linux host that serves Jellyfin or this launcher; see [`docs/ssh.md`](docs/ssh.md).

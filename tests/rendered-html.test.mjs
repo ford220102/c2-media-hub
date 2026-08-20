@@ -17,6 +17,8 @@ test("published VIDAA launcher contains all services and real diagnostics", asyn
   assert.match(html, /cdn-cgi\/trace/);
   assert.match(html, /requestFullscreen/);
   assert.match(html, /PCM\/stereo/);
+  assert.match(html, /c2-device-report\.json/);
+  assert.match(html, /Zgadzam się · rozpocznij/);
   assert.doesNotMatch(html, /Pad gotowy/);
 });
 
@@ -27,6 +29,8 @@ test("React launcher keeps URL validation, gamepad controls and diagnostics", as
   assert.match(page, /sshCommand/);
   assert.match(page, /requestFullscreen/);
   assert.match(page, /PCM\/stereo/);
+  assert.match(page, /c2-device-report\.json/);
+  assert.match(page, /ukryty przez przeglądarkę/);
   assert.match(page, /<dialog open/);
   assert.match(page, /requestAnimationFrame/);
   assert.match(page, /System\/Info\/Public/);
