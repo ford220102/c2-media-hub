@@ -39,6 +39,24 @@ function validPort(value: string) {
   return Number.isInteger(port) && port >= 1 && port <= 65535 ? String(port) : "22";
 }
 
+function handleGamepad(
+  gamepad: Gamepad,
+  previous: Map<number, boolean>,
+  lastAction: number,
+  moveFocus: (direction: number) => void,
+  closeOverlays: () => void,
+) {
+  const now = performance.now();
+  const edge = (index: number) => buttonEdge(gamepad, index, previous);
+  const axis = gamepad.axes[1] || 0;
+  let nextAction = lastAction;
+  if (edge(12) || (axis < -0.65 && now - lastAction > 220)) { moveFocus(-1); nextAction = now; }
+  if (edge(13) || (axis > 0.65 && now - lastAction > 220)) { moveFocus(1); nextAction = now; }
+  if (edge(0)) (document.activeElement as HTMLElement | null)?.click();
+  if (edge(1)) closeOverlays();
+  return nextAction;
+}
+
 export default function Home() {
   const [jellyfin, setJellyfin] = useState(() => typeof window === "undefined" ? "" : normalizedUrl(window.localStorage.getItem(STORAGE_KEY) || ""));
   const [editing, setEditing] = useState(false);
@@ -71,21 +89,17 @@ export default function Home() {
       const gamepad = Array.from(navigator.getGamepads?.() || []).find(Boolean);
       setPad(Boolean(gamepad));
       if (gamepad) {
-        const now = performance.now();
-        const edge = (index: number) => buttonEdge(gamepad, index, previous);
-        const axis = gamepad.axes[1] || 0;
-        if (edge(12) || (axis < -0.65 && now - lastPadAction.current > 220)) { moveFocus(-1); lastPadAction.current = now; }
-        if (edge(13) || (axis > 0.65 && now - lastPadAction.current > 220)) { moveFocus(1); lastPadAction.current = now; }
-        if (edge(0)) (document.activeElement as HTMLElement | null)?.click();
-        if (edge(1) && editing) setEditing(false);
-        if (edge(1) && diagnostics) setDiagnostics(false);
-        if (edge(1) && sshOpen) setSshOpen(false);
+        lastPadAction.current = handleGamepad(gamepad, previous, lastPadAction.current, moveFocus, () => {
+          setEditing(false);
+          setDiagnostics(false);
+          setSshOpen(false);
+        });
       }
       frame = requestAnimationFrame(pollGamepads);
     };
     frame = requestAnimationFrame(pollGamepads);
     return () => cancelAnimationFrame(frame);
-  }, [diagnostics, editing, moveFocus, sshOpen]);
+  }, [moveFocus]);
 
   const sshHost = typeof window === "undefined" ? "adres-hosta" : window.location.hostname;
   const validSshPort = validPort(sshPort);
