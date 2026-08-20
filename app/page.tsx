@@ -20,6 +20,25 @@ function normalizedUrl(value: string) {
   }
 }
 
+function buttonEdge(gamepad: Gamepad, index: number, previous: Map<number, boolean>) {
+  const pressed = Boolean(gamepad.buttons[index]?.pressed);
+  const edge = pressed && !previous.get(index);
+  previous.set(index, pressed);
+  return edge;
+}
+
+function networkQuality(internet: boolean, latency: number) {
+  if (!internet) return "Brak internetu — sprawdź sieć.";
+  if (latency <= 60) return "Dobre warunki do grania w chmurze.";
+  if (latency <= 120) return "Możliwe wyczuwalne opóźnienie.";
+  return "Duże opóźnienie — użyj Ethernetu lub Wi‑Fi 5 GHz.";
+}
+
+function validPort(value: string) {
+  const port = Number(value);
+  return Number.isInteger(port) && port >= 1 && port <= 65535 ? String(port) : "22";
+}
+
 export default function Home() {
   const [jellyfin, setJellyfin] = useState(() => typeof window === "undefined" ? "" : normalizedUrl(window.localStorage.getItem(STORAGE_KEY) || ""));
   const [editing, setEditing] = useState(false);
@@ -53,13 +72,7 @@ export default function Home() {
       setPad(Boolean(gamepad));
       if (gamepad) {
         const now = performance.now();
-        const pressed = (index: number) => Boolean(gamepad.buttons[index]?.pressed);
-        const edge = (index: number) => {
-          const value = pressed(index);
-          const old = previous.get(index) || false;
-          previous.set(index, value);
-          return value && !old;
-        };
+        const edge = (index: number) => buttonEdge(gamepad, index, previous);
         const axis = gamepad.axes[1] || 0;
         if (edge(12) || (axis < -0.65 && now - lastPadAction.current > 220)) { moveFocus(-1); lastPadAction.current = now; }
         if (edge(13) || (axis > 0.65 && now - lastPadAction.current > 220)) { moveFocus(1); lastPadAction.current = now; }
@@ -75,7 +88,7 @@ export default function Home() {
   }, [diagnostics, editing, moveFocus, sshOpen]);
 
   const sshHost = typeof window === "undefined" ? "adres-hosta" : window.location.hostname;
-  const validSshPort = /^(?:[1-9]|[1-9]\d{1,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|655[0-2]\d|6553[0-5])$/.test(sshPort) ? sshPort : "22";
+  const validSshPort = validPort(sshPort);
   const validSshUser = /^[a-z_][a-z0-9_-]{0,31}$/i.test(sshUser) ? sshUser : "media";
   const sshCommand = `ssh -p ${validSshPort} ${validSshUser}@${sshHost}`;
 
@@ -138,7 +151,7 @@ export default function Home() {
         server = "osiągalny";
       } catch { server = "brak odpowiedzi / blokada CORS"; }
     }
-    const quality = !internet ? "Brak internetu — sprawdź sieć." : latency <= 60 ? "Dobre warunki do grania w chmurze." : latency <= 120 ? "Możliwe wyczuwalne opóźnienie." : "Duże opóźnienie — użyj Ethernetu lub Wi‑Fi 5 GHz.";
+    const quality = networkQuality(internet, latency);
     setTestResult(`Internet: ${internet ? "OK" : "BŁĄD"} · odpowiedź ${latency} ms\nJellyfin: ${server}\nPad: ${pad ? "wykryty" : "niewykryty"}\n${quality}`);
   }
 
@@ -149,15 +162,15 @@ export default function Home() {
         <div className={`status ${pad ? "connected" : ""}`}><span />{pad ? "Pad wykryty" : "Pilot gotowy · pad niewykryty"}</div>
       </header>
       <section className="hero" aria-label="Wybór usługi">
-        <button ref={jellyfinButton} className="tile jellyfin" onClick={openJellyfin}><span className="tileIndex">01</span><span className="tileMark">J</span><span className="tileTitle">Jellyfin</span><span className="tileMeta">Twoje filmy i seriale</span><span className="tileAction">OTWÓRZ <b>→</b></span></button>
-        <button className="tile xbox" onClick={() => window.location.assign(XBOX_URL)}><span className="tileIndex">02</span><span className="tileMark">X</span><span className="tileTitle">Xbox Cloud</span><span className="tileMeta">Wymaga zgodnej przeglądarki VIDAA</span><span className="tileAction">URUCHOM <b>→</b></span></button>
-        <button className="tile ssh" onClick={() => { setSshOpen(true); setCopied(false); }}><span className="tileIndex">03</span><span className="tileMark">›_</span><span className="tileTitle">SSH</span><span className="tileMeta">Dane bezpiecznego dostępu do hosta</span><span className="tileAction">POKAŻ IP <b>→</b></span></button>
+        <button type="button" ref={jellyfinButton} className="tile jellyfin" onClick={openJellyfin}><span className="tileIndex">01</span><span className="tileMark">J</span><span className="tileTitle">Jellyfin</span><span className="tileMeta">Twoje filmy i seriale</span><span className="tileAction">OTWÓRZ <b>→</b></span></button>
+        <button type="button" className="tile xbox" onClick={() => window.location.assign(XBOX_URL)}><span className="tileIndex">02</span><span className="tileMark">X</span><span className="tileTitle">Xbox Cloud</span><span className="tileMeta">Wymaga zgodnej przeglądarki VIDAA</span><span className="tileAction">URUCHOM <b>→</b></span></button>
+        <button type="button" className="tile ssh" onClick={() => { setSshOpen(true); setCopied(false); }}><span className="tileIndex">03</span><span className="tileMark">›_</span><span className="tileTitle">SSH</span><span className="tileMeta">Dane bezpiecznego dostępu do hosta</span><span className="tileAction">POKAŻ IP <b>→</b></span></button>
       </section>
-      <footer><div className="footerActions"><button className="settings" onClick={editAddress}>⚙ Jellyfin</button><button className="settings" onClick={() => setDiagnostics(true)}>Test połączenia</button></div><p>Strzałki / D-pad · OK / A</p></footer>
+      <footer><div className="footerActions"><button type="button" className="settings" onClick={editAddress}>⚙ Jellyfin</button><button type="button" className="settings" onClick={() => setDiagnostics(true)}>Test połączenia</button></div><p>Strzałki / D-pad · OK / A</p></footer>
 
-      {editing && <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="dialog-title"><form className="dialog" onSubmit={(event) => { event.preventDefault(); saveAddress(); }}><p className="eyebrow">KONFIGURACJA</p><h2 id="dialog-title">Adres serwera Jellyfin</h2><p className="hint">Najmniejsze opóźnienie daje lokalny adres serwera w tej samej sieci.</p><input inputMode="url" autoComplete="off" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="192.168.1.20:8096" aria-label="Adres serwera Jellyfin" />{message && <p className="message" role="alert">{message}</p>}<div className="dialogActions"><button type="button" onClick={() => setEditing(false)}>Anuluj</button><button type="submit" className="primary">Zapisz</button></div></form></div>}
-      {diagnostics && <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="diagnostics-title"><div className="dialog"><p className="eyebrow">DIAGNOSTYKA</p><h2 id="diagnostics-title">Sieć i urządzenia</h2><pre className="result" aria-live="polite">{testResult}</pre><p className="hint">Do Jellyfin wybieraj Direct Play H.264/AAC. Transkodowanie, HDR i napisy graficzne mogą powodować zacięcia.</p><div className="dialogActions"><button onClick={() => setDiagnostics(false)}>Zamknij</button><button className="primary" onClick={runDiagnostics}>Uruchom test</button></div></div></div>}
-      {sshOpen && <div className="overlay" role="dialog" aria-modal="true" aria-labelledby="ssh-title"><form className="dialog" onSubmit={(event) => { event.preventDefault(); saveSsh(); }}><p className="eyebrow">DOSTĘP ZDALNY</p><h2 id="ssh-title">SSH do hosta</h2><p className="hint">Adres hosta tej strony został wykryty automatycznie. SSH musi być wcześniej uruchomione na tym hoście przez <code>scripts/setup-ssh-host.sh</code>.</p><div className="sshGrid"><label>IP / host<input value={sshHost} readOnly /></label><label>Użytkownik<input value={sshUser} onChange={(event) => setSshUser(event.target.value)} autoComplete="username" /></label><label>Port<input value={sshPort} onChange={(event) => setSshPort(event.target.value)} inputMode="numeric" /></label></div><pre className="result">{sshCommand}</pre>{copied && <p className="message" role="status">Komenda skopiowana.</p>}<div className="dialogActions"><button type="button" onClick={() => setSshOpen(false)}>Zamknij</button><button type="button" onClick={copySshCommand}>Kopiuj komendę</button><button type="submit" className="primary">Zapisz</button></div></form></div>}
+      {editing && <dialog open className="overlay" aria-labelledby="dialog-title"><form className="dialog" onSubmit={(event) => { event.preventDefault(); saveAddress(); }}><p className="eyebrow">KONFIGURACJA</p><h2 id="dialog-title">Adres serwera Jellyfin</h2><p className="hint">Najmniejsze opóźnienie daje lokalny adres serwera w tej samej sieci.</p><input inputMode="url" autoComplete="off" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="192.168.1.20:8096" aria-label="Adres serwera Jellyfin" />{message && <p className="message" role="alert">{message}</p>}<div className="dialogActions"><button type="button" onClick={() => setEditing(false)}>Anuluj</button><button type="submit" className="primary">Zapisz</button></div></form></dialog>}
+      {diagnostics && <dialog open className="overlay" aria-labelledby="diagnostics-title"><div className="dialog"><p className="eyebrow">DIAGNOSTYKA</p><h2 id="diagnostics-title">Sieć i urządzenia</h2><pre className="result" aria-live="polite">{testResult}</pre><p className="hint">Do Jellyfin wybieraj Direct Play H.264/AAC. Transkodowanie, HDR i napisy graficzne mogą powodować zacięcia.</p><div className="dialogActions"><button type="button" onClick={() => setDiagnostics(false)}>Zamknij</button><button type="button" className="primary" onClick={runDiagnostics}>Uruchom test</button></div></div></dialog>}
+      {sshOpen && <dialog open className="overlay" aria-labelledby="ssh-title"><form className="dialog" onSubmit={(event) => { event.preventDefault(); saveSsh(); }}><p className="eyebrow">DOSTĘP ZDALNY</p><h2 id="ssh-title">SSH do hosta</h2><p className="hint">Adres hosta tej strony został wykryty automatycznie. SSH musi być wcześniej uruchomione na tym hoście przez <code>scripts/setup-ssh-host.sh</code>.</p><div className="sshGrid"><label>IP / host<input value={sshHost} readOnly /></label><label>Użytkownik<input value={sshUser} onChange={(event) => setSshUser(event.target.value)} autoComplete="username" /></label><label>Port<input value={sshPort} onChange={(event) => setSshPort(event.target.value)} inputMode="numeric" /></label></div><pre className="result">{sshCommand}</pre>{copied && <output className="message">Komenda skopiowana.</output>}<div className="dialogActions"><button type="button" onClick={() => setSshOpen(false)}>Zamknij</button><button type="button" onClick={copySshCommand}>Kopiuj komendę</button><button type="submit" className="primary">Zapisz</button></div></form></dialog>}
     </main>
   );
 }

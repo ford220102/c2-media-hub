@@ -24,7 +24,7 @@ h1 { margin: 0; font-size: clamp(34px, 4vw, 72px); letter-spacing: -.055em; line
 .tileMark { width: clamp(72px, 7vw, 118px); height: clamp(72px, 7vw, 118px); border-radius: 26px; display: grid; place-items: center; font-size: clamp(40px, 4vw, 68px); font-weight: 900; margin: auto 0 2.5vh; background: linear-gradient(135deg, #6332ba, #bc76ff); box-shadow: inset 0 1px rgba(255,255,255,.35); }
 .xbox .tileMark { border-radius: 50%; background: #77c66c; color: #09260d; }
 .ssh { background: linear-gradient(145deg, #18263a, #10151d); }
-.ssh .tileMark { background: linear-gradient(135deg, #2f70b7, #79b8ff); color: #07192b; font-size: clamp(24px, 2.5vw, 44px); }
+.ssh .tileMark { background: linear-gradient(135deg, #438bd7, #90c7ff); color: #020b14; font-size: clamp(24px, 2.5vw, 44px); }
 .ssh:focus-visible { box-shadow: 0 0 0 5px #66aef5, 0 22px 70px #142f52; }
 .tileTitle { font-weight: 800; font-size: clamp(30px, 3.4vw, 62px); letter-spacing: -.045em; }
 .tileMeta { margin-top: .5rem; color: var(--muted); font-size: clamp(14px, 1.15vw, 20px); }
@@ -34,7 +34,7 @@ footer { display: flex; align-items: center; justify-content: space-between; col
 .footerActions { display: flex; gap: .8rem; }
 .settings, .dialog button { border: 1px solid #454a45; background: #171a17; border-radius: 999px; padding: .85rem 1.25rem; cursor: pointer; }
 .settings:focus-visible, .dialog button:focus-visible, input:focus { outline: 3px solid #d8e7da; outline-offset: 3px; }
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.78); display: grid; place-items: center; padding: 2rem; backdrop-filter: blur(12px); }
+.overlay { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; border: 0; background: rgba(0,0,0,.78); display: grid; place-items: center; padding: 2rem; backdrop-filter: blur(12px); color: inherit; }
 .dialog { width: min(650px, 92vw); background: #151815; border: 1px solid #4a504a; border-radius: 28px; padding: clamp(28px, 4vw, 52px); box-shadow: 0 30px 100px #000; }
 .dialog h2 { margin: 0; font-size: clamp(26px, 3vw, 46px); letter-spacing: -.04em; }
 .hint { color: var(--muted); }

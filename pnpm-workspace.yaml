@@ -3,3 +3,5 @@ allowBuilds:
   sharp: true
   workerd: true
 verifyDepsBeforeRun: false
+overrides:
+  esbuild: 0.28.2
