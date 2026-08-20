@@ -1,8 +1,560 @@
 <!doctype html>
-<html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#090a09"><title>C2 Media Hub</title>
-<style>*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at 68% 20%,#202820,#080908 70%);color:#f3f0e8;font-family:Arial,sans-serif;padding:5vh 5vw;display:flex;flex-direction:column}header{display:flex;justify-content:space-between;align-items:end;border-bottom:1px solid #394039;padding-bottom:3vh}h1{font-size:clamp(34px,6vh,72px);margin:0}.sub{color:#8fb997;letter-spacing:.15em;font-weight:bold}.status{color:#aaa}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#e2ae52;margin-right:.7rem}.connected .dot{background:#70df81;box-shadow:0 0 18px #70df81}.grid{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:2vw;padding:5vh 0}.tile{border:2px solid #394039;border-radius:28px;background:#171b18;color:#fff;text-align:left;padding:4vw;font-size:clamp(26px,4vh,54px);font-weight:bold}.tile small{display:block;font-size:clamp(14px,2vh,19px);color:#aaa;margin-top:2vh}.tile:focus,.set:focus,.dialog button:focus,.dialog input:focus{outline:6px solid #fff;outline-offset:3px}.j{background:linear-gradient(145deg,#3a1d62,#17101e)}.x{background:linear-gradient(145deg,#17451e,#101b12)}.h{background:linear-gradient(145deg,#18385b,#101923)}footer{display:flex;justify-content:space-between;align-items:center;color:#aaa}.footBtns{display:flex;gap:1vw}button{cursor:pointer}.set{background:#171a17;color:#ddd;border:1px solid #555;border-radius:20px;padding:1.2vh 2vw}.overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);display:none;align-items:center;justify-content:center;padding:3vh}.overlay.open{display:flex}.dialog{width:min(780px,92vw);background:#171b18;border:2px solid #555;border-radius:28px;padding:5vh}.dialog h2{font-size:4vh;margin-top:0}.dialog input{width:100%;font-size:2.5vh;padding:2vh;background:#080a09;color:#fff;border:2px solid #666;border-radius:14px}.actions{display:flex;justify-content:flex-end;gap:2vw;margin-top:3vh}.actions button{font-size:2.2vh;padding:1.5vh 3vw;border-radius:20px;border:1px solid #777}.save{background:#fff;color:#111}.result{white-space:pre-wrap;background:#0d100e;border:1px solid #485048;border-radius:18px;padding:2.5vh;margin:2vh 0;min-height:8vh;line-height:1.6}.fields{display:grid;grid-template-columns:2fr 1fr 7rem;gap:1vw}.fields label{color:#aaa}.fields input{margin-top:.5rem}@media(max-width:900px){header{align-items:start}.status{display:none}.grid{grid-template-columns:1fr}.fields{grid-template-columns:1fr}.footBtns{flex-direction:column}footer>span{display:none}}</style></head>
-<body><header><div><div class="sub">HISENSE C2 · VIDAA OS</div><h1>C2 Media Hub</h1></div><div id="pad" class="status"><i class="dot"></i>Pilot gotowy · pad niewykryty</div></header><main class="grid"><button id="j" class="tile j">Jellyfin<small>Twoje filmy i seriale →</small></button><button id="x" class="tile x">Xbox Cloud<small>Wymaga zgodnej przeglądarki VIDAA →</small></button><button id="ssh" class="tile h">SSH<small>Pokaż IP i komendę hosta →</small></button></main><footer><div class="footBtns"><button id="s" class="set">⚙ Jellyfin</button><button id="test" class="set">Test połączenia</button></div><span>Strzałki / D-pad · OK / A</span></footer>
-<dialog open id="o" class="overlay" aria-labelledby="setup-title"><form class="dialog" id="form"><h2 id="setup-title">Adres serwera Jellyfin</h2><p>Najmniejsze opóźnienie daje lokalny adres, np. 192.168.1.20:8096</p><input id="u" inputmode="url" autocomplete="off" aria-label="Adres serwera Jellyfin"><p id="msg" role="alert"></p><div class="actions"><button type="button" id="c">Anuluj</button><button class="save">Zapisz</button></div></form></dialog>
-<dialog open id="diag" class="overlay" aria-labelledby="diag-title"><div class="dialog"><h2 id="diag-title">Sieć i urządzenia</h2><div id="res" class="result" aria-live="polite">Naciśnij „Uruchom test”.</div><p>Do Jellyfin wybieraj Direct Play H.264/AAC. Transkodowanie, HDR i napisy graficzne mogą powodować zacięcia.</p><div class="actions"><button id="dc">Zamknij</button><button id="go" class="save">Uruchom test</button></div></div></dialog>
-<dialog open id="sshbox" class="overlay" aria-labelledby="ssh-title"><form id="sshform" class="dialog"><h2 id="ssh-title">SSH do hosta</h2><p>IP/host jest wykrywany z adresu launchera. Usługę uruchamia jednorazowo <code>scripts/setup-ssh-host.sh</code> na serwerze Linux.</p><div class="fields"><label>IP / host<input id="shost" readonly></label><label>Użytkownik<input id="suser" autocomplete="username"></label><label>Port<input id="sport" inputmode="numeric"></label></div><div id="scmd" class="result"></div><p id="smsg"></p><div class="actions"><button type="button" id="sclose">Zamknij</button><button type="button" id="scopy">Kopiuj</button><button class="save">Zapisz</button></div></form></dialog>
-<script>(function(){"use strict";var key="c2-jellyfin-url",o=document.getElementById("o"),d=document.getElementById("diag"),sb=document.getElementById("sshbox"),u=document.getElementById("u"),j=document.getElementById("j"),res=document.getElementById("res"),padEl=document.getElementById("pad"),pad=false,last=0,old={};function url(v){v=(v||"").trim();if(v&&!/^https?:\/\//i.test(v))v="http://"+v;try{var p=new URL(v);return /^(http|https):$/.test(p.protocol)&&!p.username&&!p.password?p.href:""}catch(e){return""}}function show(){u.value=url(localStorage.getItem(key));document.getElementById("msg").textContent="";o.className="overlay open";setTimeout(function(){u.focus()},0)}function close(){o.className="overlay";j.focus()}function save(e){e.preventDefault();var v=url(u.value);if(!v){document.getElementById("msg").textContent="Wpisz poprawny adres HTTP(S).";return}localStorage.setItem(key,v);close()}function focusMove(step){var a=[].slice.call(document.querySelectorAll("button,input")).filter(function(el){return el.offsetParent!==null}),i=Math.max(0,a.indexOf(document.activeElement));if(a.length)a[(i+step+a.length)%a.length].focus()}function sshValues(){var user=document.getElementById("suser").value.trim(),port=document.getElementById("sport").value.trim();if(!/^[a-z_][a-z0-9_-]{0,31}$/i.test(user))user="media";if(!/^([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$/.test(port))port="22";return{user:user,port:port,cmd:"ssh -p "+port+" "+user+"@"+location.hostname}}function sshRender(){var v=sshValues();document.getElementById("scmd").textContent=v.cmd;return v}function sshShow(){document.getElementById("shost").value=location.hostname;document.getElementById("suser").value=localStorage.getItem("c2-ssh-user")||"media";document.getElementById("sport").value=localStorage.getItem("c2-ssh-port")||"22";document.getElementById("smsg").textContent="";sb.className="overlay open";sshRender()}function sshClose(){sb.className="overlay";j.focus()}function poll(){var list=navigator.getGamepads?navigator.getGamepads():[],g=[].slice.call(list).filter(Boolean)[0];pad=!!g;padEl.className="status"+(pad?" connected":"");padEl.innerHTML='<i class="dot"></i>'+(pad?"Pad wykryty":"Pilot gotowy · pad niewykryty");if(g){var now=performance.now(),edge=function(i){var v=!!(g.buttons[i]&&g.buttons[i].pressed),e=v&&!old[i];old[i]=v;return e},axis=g.axes[1]||0;if(edge(12)||(axis<-.65&&now-last>220)){focusMove(-1);last=now}if(edge(13)||(axis>.65&&now-last>220)){focusMove(1);last=now}if(edge(0)&&document.activeElement)document.activeElement.click();if(edge(1)){if(o.className.indexOf("open")>0)close();if(d.className.indexOf("open")>0){d.className="overlay";j.focus()}if(sb.className.indexOf("open")>0)sshClose()}}requestAnimationFrame(poll)}async function test(){res.textContent="Testuję połączenie…";var start=performance.now(),online=false;try{await fetch("https://www.cloudflare.com/cdn-cgi/trace?t="+Date.now(),{mode:"no-cors",cache:"no-store"});online=true}catch(e){}var ms=Math.round(performance.now()-start),jf=url(localStorage.getItem(key)),server="adres nieustawiony";if(jf){try{await fetch(jf.replace(/\/$/,"")+"/System/Info/Public",{mode:"no-cors",cache:"no-store"});server="osiągalny"}catch(e){server="brak odpowiedzi / blokada CORS"}}var q=!online?"Brak internetu — sprawdź sieć.":ms<=60?"Dobre warunki do grania w chmurze.":ms<=120?"Możliwe wyczuwalne opóźnienie.":"Duże opóźnienie — użyj Ethernetu lub Wi-Fi 5 GHz.";res.textContent="Internet: "+(online?"OK":"BŁĄD")+" · odpowiedź "+ms+" ms\nJellyfin: "+server+"\nPad: "+(pad?"wykryty":"niewykryty")+"\n"+q}j.onclick=function(){var v=url(localStorage.getItem(key));if(v)location.href=v;else show()};document.getElementById("x").onclick=function(){location.href="https://www.xbox.com/play"};document.getElementById("ssh").onclick=sshShow;document.getElementById("sclose").onclick=sshClose;document.getElementById("suser").oninput=sshRender;document.getElementById("sport").oninput=sshRender;document.getElementById("sshform").onsubmit=function(e){e.preventDefault();var v=sshValues();localStorage.setItem("c2-ssh-user",v.user);localStorage.setItem("c2-ssh-port",v.port);document.getElementById("smsg").textContent="Dane zapisane.";sshRender()};document.getElementById("scopy").onclick=async function(){var v=sshRender();try{await navigator.clipboard.writeText(v.cmd);document.getElementById("smsg").textContent="Komenda skopiowana."}catch(e){document.getElementById("smsg").textContent="Skopiuj komendę ręcznie."}};document.getElementById("s").onclick=show;document.getElementById("c").onclick=close;document.getElementById("form").onsubmit=save;document.getElementById("test").onclick=function(){d.className="overlay open";document.getElementById("go").focus()};document.getElementById("dc").onclick=function(){d.className="overlay";j.focus()};document.getElementById("go").onclick=test;j.focus();requestAnimationFrame(poll)})();</script></body></html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="theme-color" content="#090a09" />
+    <title>C2 Media Hub</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background: radial-gradient(circle at 68% 20%, #202820, #080908 70%);
+        color: #f3f0e8;
+        font-family: Arial, sans-serif;
+        padding: 5vh 5vw;
+        display: flex;
+        flex-direction: column;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        border-bottom: 1px solid #394039;
+        padding-bottom: 3vh;
+      }
+      h1 {
+        font-size: clamp(34px, 6vh, 72px);
+        margin: 0;
+      }
+      .sub {
+        color: #8fb997;
+        letter-spacing: 0.15em;
+        font-weight: bold;
+      }
+      .status {
+        color: #aaa;
+      }
+      .dot {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #e2ae52;
+        margin-right: 0.7rem;
+      }
+      .connected .dot {
+        background: #70df81;
+        box-shadow: 0 0 18px #70df81;
+      }
+      .grid {
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2vw;
+        padding: 5vh 0;
+      }
+      .tile {
+        border: 2px solid #394039;
+        border-radius: 28px;
+        background: #171b18;
+        color: #fff;
+        text-align: left;
+        padding: 4vw;
+        font-size: clamp(26px, 4vh, 54px);
+        font-weight: bold;
+      }
+      .tile small {
+        display: block;
+        font-size: clamp(14px, 2vh, 19px);
+        color: #aaa;
+        margin-top: 2vh;
+      }
+      .tile:focus,
+      .set:focus,
+      .dialog button:focus,
+      .dialog input:focus {
+        outline: 6px solid #fff;
+        outline-offset: 3px;
+      }
+      .j {
+        background: linear-gradient(145deg, #3a1d62, #17101e);
+      }
+      .x {
+        background: linear-gradient(145deg, #17451e, #101b12);
+      }
+      .h {
+        background: linear-gradient(145deg, #18385b, #101923);
+      }
+      footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #aaa;
+      }
+      .footBtns {
+        display: flex;
+        gap: 1vw;
+      }
+      button {
+        cursor: pointer;
+      }
+      .set {
+        background: #171a17;
+        color: #ddd;
+        border: 1px solid #555;
+        border-radius: 20px;
+        padding: 1.2vh 2vw;
+      }
+      .overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.9);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 3vh;
+      }
+      .overlay.open {
+        display: flex;
+      }
+      .dialog {
+        width: min(780px, 92vw);
+        background: #171b18;
+        border: 2px solid #555;
+        border-radius: 28px;
+        padding: 5vh;
+      }
+      .dialog h2 {
+        font-size: 4vh;
+        margin-top: 0;
+      }
+      .dialog input {
+        width: 100%;
+        font-size: 2.5vh;
+        padding: 2vh;
+        background: #080a09;
+        color: #fff;
+        border: 2px solid #666;
+        border-radius: 14px;
+      }
+      .actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 2vw;
+        margin-top: 3vh;
+      }
+      .actions button {
+        font-size: 2.2vh;
+        padding: 1.5vh 3vw;
+        border-radius: 20px;
+        border: 1px solid #777;
+      }
+      .save {
+        background: #fff;
+        color: #111;
+      }
+      .result {
+        white-space: pre-wrap;
+        background: #0d100e;
+        border: 1px solid #485048;
+        border-radius: 18px;
+        padding: 2.5vh;
+        margin: 2vh 0;
+        min-height: 8vh;
+        line-height: 1.6;
+      }
+      .fields {
+        display: grid;
+        grid-template-columns: 2fr 1fr 7rem;
+        gap: 1vw;
+      }
+      .fields label {
+        color: #aaa;
+      }
+      .fields input {
+        margin-top: 0.5rem;
+      }
+      @media (max-width: 900px) {
+        header {
+          align-items: start;
+        }
+        .status {
+          display: none;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .fields {
+          grid-template-columns: 1fr;
+        }
+        .footBtns {
+          flex-direction: column;
+        }
+        footer > span {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <div class="sub">HISENSE C2 · VIDAA OS</div>
+        <h1>C2 Media Hub</h1>
+      </div>
+      <div id="pad" class="status">
+        <i class="dot"></i>Pilot gotowy · pad niewykryty
+      </div>
+    </header>
+    <main class="grid">
+      <button id="j" class="tile j">
+        Jellyfin<small>Twoje filmy i seriale →</small></button
+      ><button id="x" class="tile x">
+        Xbox Cloud<small>Wymaga zgodnej przeglądarki VIDAA →</small></button
+      ><button id="ssh" class="tile h">
+        SSH<small>Pokaż IP i komendę hosta →</small>
+      </button>
+    </main>
+    <footer>
+      <div class="footBtns">
+        <button id="s" class="set">⚙ Jellyfin</button
+        ><button id="test" class="set">Test połączenia</button>
+      </div>
+      <span>Strzałki / D-pad · OK / A</span>
+    </footer>
+    <dialog open id="o" class="overlay" aria-labelledby="setup-title">
+      <form class="dialog" id="form">
+        <h2 id="setup-title">Adres serwera Jellyfin</h2>
+        <p>Najmniejsze opóźnienie daje lokalny adres, np. 192.168.1.20:8096</p>
+        <input
+          id="u"
+          inputmode="url"
+          autocomplete="off"
+          aria-label="Adres serwera Jellyfin"
+        />
+        <p id="msg" role="alert"></p>
+        <div class="actions">
+          <button type="button" id="c">Anuluj</button
+          ><button class="save">Zapisz</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog open id="diag" class="overlay" aria-labelledby="diag-title">
+      <div class="dialog">
+        <h2 id="diag-title">Sieć i urządzenia</h2>
+        <div id="res" class="result" aria-live="polite">
+          Naciśnij „Uruchom test”.
+        </div>
+        <p>
+          Do Jellyfin wybieraj Direct Play H.264/AAC. Transkodowanie, HDR i
+          napisy graficzne mogą powodować zacięcia.
+        </p>
+        <div class="actions">
+          <button id="dc">Zamknij</button
+          ><button id="go" class="save">Uruchom test</button>
+        </div>
+      </div>
+    </dialog>
+    <dialog open id="sshbox" class="overlay" aria-labelledby="ssh-title">
+      <form id="sshform" class="dialog">
+        <h2 id="ssh-title">SSH do hosta</h2>
+        <p>
+          IP/host jest wykrywany z adresu launchera. Usługę uruchamia
+          jednorazowo <code>scripts/setup-ssh-host.sh</code> na serwerze Linux.
+        </p>
+        <div class="fields">
+          <label>IP / host<input id="shost" readonly /></label
+          ><label>Użytkownik<input id="suser" autocomplete="username" /></label
+          ><label>Port<input id="sport" inputmode="numeric" /></label>
+        </div>
+        <div id="scmd" class="result"></div>
+        <p id="smsg"></p>
+        <div class="actions">
+          <button type="button" id="sclose">Zamknij</button
+          ><button type="button" id="scopy">Kopiuj</button
+          ><button class="save">Zapisz</button>
+        </div>
+      </form>
+    </dialog>
+    <dialog open id="xboxbox" class="overlay" aria-labelledby="xbox-title">
+      <div class="dialog">
+        <h2 id="xbox-title">Xbox — tryb niskiego opóźnienia</h2>
+        <ol>
+          <li>
+            Użyj Ethernetu albo Wi-Fi 5 GHz/6E; Xbox zaleca minimum 20 Mb/s.
+          </li>
+          <li>W C2 włącz Tryb Gra i wyłącz MEMC oraz redukcję szumów.</li>
+          <li>
+            Ustaw dźwięk Standard i PCM/stereo; wyłącz DTS Virtual:X oraz
+            Bluetooth audio.
+          </li>
+          <li>Sprawdź, czy launcher pokazuje „Pad wykryty”.</li>
+          <li>
+            Jeśli VIDAA nadal charczy, użyj wspieranego urządzenia Xbox/Fire TV
+            przez HDMI.
+          </li>
+        </ol>
+        <p class="result">
+          VIDAA nie jest na oficjalnej liście telewizorów Xbox Cloud. Launcher
+          nie może zmienić kodeków systemowej przeglądarki.
+        </p>
+        <div class="actions">
+          <button type="button" id="xback">Wróć</button
+          ><button type="button" id="xdiag">Test sieci</button
+          ><button type="button" id="xgo" class="save">
+            Pełny ekran i uruchom
+          </button>
+        </div>
+      </div>
+    </dialog>
+    <script>
+      (function () {
+        "use strict";
+        var key = "c2-jellyfin-url",
+          o = document.getElementById("o"),
+          d = document.getElementById("diag"),
+          sb = document.getElementById("sshbox"),
+          xb = document.getElementById("xboxbox"),
+          u = document.getElementById("u"),
+          j = document.getElementById("j"),
+          res = document.getElementById("res"),
+          padEl = document.getElementById("pad"),
+          pad = false,
+          last = 0,
+          old = {};
+        function url(v) {
+          v = (v || "").trim();
+          if (v && !/^https?:\/\//i.test(v)) v = "http://" + v;
+          try {
+            var p = new URL(v);
+            return /^(http|https):$/.test(p.protocol) &&
+              !p.username &&
+              !p.password
+              ? p.href
+              : "";
+          } catch (e) {
+            return "";
+          }
+        }
+        function show() {
+          u.value = url(localStorage.getItem(key));
+          document.getElementById("msg").textContent = "";
+          o.className = "overlay open";
+          setTimeout(function () {
+            u.focus();
+          }, 0);
+        }
+        function close() {
+          o.className = "overlay";
+          j.focus();
+        }
+        function save(e) {
+          e.preventDefault();
+          var v = url(u.value);
+          if (!v) {
+            document.getElementById("msg").textContent =
+              "Wpisz poprawny adres HTTP(S).";
+            return;
+          }
+          localStorage.setItem(key, v);
+          close();
+        }
+        function focusMove(step) {
+          var a = [].slice
+              .call(document.querySelectorAll("button,input"))
+              .filter(function (el) {
+                return el.offsetParent !== null;
+              }),
+            i = Math.max(0, a.indexOf(document.activeElement));
+          if (a.length) a[(i + step + a.length) % a.length].focus();
+        }
+        function sshValues() {
+          var user = document.getElementById("suser").value.trim(),
+            port = document.getElementById("sport").value.trim();
+          if (!/^[a-z_][a-z0-9_-]{0,31}$/i.test(user)) user = "media";
+          if (
+            !/^([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$/.test(
+              port,
+            )
+          )
+            port = "22";
+          return {
+            user: user,
+            port: port,
+            cmd: "ssh -p " + port + " " + user + "@" + location.hostname,
+          };
+        }
+        function sshRender() {
+          var v = sshValues();
+          document.getElementById("scmd").textContent = v.cmd;
+          return v;
+        }
+        function sshShow() {
+          document.getElementById("shost").value = location.hostname;
+          document.getElementById("suser").value =
+            localStorage.getItem("c2-ssh-user") || "media";
+          document.getElementById("sport").value =
+            localStorage.getItem("c2-ssh-port") || "22";
+          document.getElementById("smsg").textContent = "";
+          sb.className = "overlay open";
+          sshRender();
+        }
+        function sshClose() {
+          sb.className = "overlay";
+          j.focus();
+        }
+        function poll() {
+          var list = navigator.getGamepads ? navigator.getGamepads() : [],
+            g = [].slice.call(list).filter(Boolean)[0];
+          pad = !!g;
+          padEl.className = "status" + (pad ? " connected" : "");
+          padEl.innerHTML =
+            '<i class="dot"></i>' +
+            (pad ? "Pad wykryty" : "Pilot gotowy · pad niewykryty");
+          if (g) {
+            var now = performance.now(),
+              edge = function (i) {
+                var v = !!(g.buttons[i] && g.buttons[i].pressed),
+                  e = v && !old[i];
+                old[i] = v;
+                return e;
+              },
+              axis = g.axes[1] || 0;
+            if (edge(12) || (axis < -0.65 && now - last > 220)) {
+              focusMove(-1);
+              last = now;
+            }
+            if (edge(13) || (axis > 0.65 && now - last > 220)) {
+              focusMove(1);
+              last = now;
+            }
+            if (edge(0) && document.activeElement)
+              document.activeElement.click();
+            if (edge(1)) {
+              if (o.className.indexOf("open") > 0) close();
+              if (d.className.indexOf("open") > 0) {
+                d.className = "overlay";
+                j.focus();
+              }
+              if (sb.className.indexOf("open") > 0) sshClose();
+              if (xb.className.indexOf("open") > 0) {
+                xb.className = "overlay";
+                j.focus();
+              }
+            }
+          }
+          requestAnimationFrame(poll);
+        }
+        async function test() {
+          res.textContent = "Testuję połączenie…";
+          var start = performance.now(),
+            online = false;
+          try {
+            await fetch(
+              "https://www.cloudflare.com/cdn-cgi/trace?t=" + Date.now(),
+              { mode: "no-cors", cache: "no-store" },
+            );
+            online = true;
+          } catch (e) {}
+          var ms = Math.round(performance.now() - start),
+            jf = url(localStorage.getItem(key)),
+            server = "adres nieustawiony";
+          if (jf) {
+            try {
+              await fetch(jf.replace(/\/$/, "") + "/System/Info/Public", {
+                mode: "no-cors",
+                cache: "no-store",
+              });
+              server = "osiągalny";
+            } catch (e) {
+              server = "brak odpowiedzi / blokada CORS";
+            }
+          }
+          var q = !online
+            ? "Brak internetu — sprawdź sieć."
+            : ms <= 60
+              ? "Dobre warunki do grania w chmurze."
+              : ms <= 120
+                ? "Możliwe wyczuwalne opóźnienie."
+                : "Duże opóźnienie — użyj Ethernetu lub Wi-Fi 5 GHz.";
+          res.textContent =
+            "Internet: " +
+            (online ? "OK" : "BŁĄD") +
+            " · odpowiedź " +
+            ms +
+            " ms\nJellyfin: " +
+            server +
+            "\nPad: " +
+            (pad ? "wykryty" : "niewykryty") +
+            "\n" +
+            q;
+        }
+        j.onclick = function () {
+          var v = url(localStorage.getItem(key));
+          if (v) location.href = v;
+          else show();
+        };
+        document.getElementById("x").onclick = function () {
+          xb.className = "overlay open";
+          document.getElementById("xgo").focus();
+        };
+        document.getElementById("xback").onclick = function () {
+          xb.className = "overlay";
+          j.focus();
+        };
+        document.getElementById("xdiag").onclick = function () {
+          xb.className = "overlay";
+          d.className = "overlay open";
+          document.getElementById("go").focus();
+        };
+        document.getElementById("xgo").onclick = async function () {
+          try {
+            if (!document.fullscreenElement)
+              await document.documentElement.requestFullscreen();
+          } catch (e) {}
+          location.href = "https://www.xbox.com/play";
+        };
+        document.getElementById("ssh").onclick = sshShow;
+        document.getElementById("sclose").onclick = sshClose;
+        document.getElementById("suser").oninput = sshRender;
+        document.getElementById("sport").oninput = sshRender;
+        document.getElementById("sshform").onsubmit = function (e) {
+          e.preventDefault();
+          var v = sshValues();
+          localStorage.setItem("c2-ssh-user", v.user);
+          localStorage.setItem("c2-ssh-port", v.port);
+          document.getElementById("smsg").textContent = "Dane zapisane.";
+          sshRender();
+        };
+        document.getElementById("scopy").onclick = async function () {
+          var v = sshRender();
+          try {
+            await navigator.clipboard.writeText(v.cmd);
+            document.getElementById("smsg").textContent = "Komenda skopiowana.";
+          } catch (e) {
+            document.getElementById("smsg").textContent =
+              "Skopiuj komendę ręcznie.";
+          }
+        };
+        document.getElementById("s").onclick = show;
+        document.getElementById("c").onclick = close;
+        document.getElementById("form").onsubmit = save;
+        document.getElementById("test").onclick = function () {
+          d.className = "overlay open";
+          document.getElementById("go").focus();
+        };
+        document.getElementById("dc").onclick = function () {
+          d.className = "overlay";
+          j.focus();
+        };
+        document.getElementById("go").onclick = test;
+        j.focus();
+        requestAnimationFrame(poll);
+      })();
+    </script>
+  </body>
+</html>

@@ -21,6 +21,12 @@ Pilot-friendly launcher for Jellyfin and the official Xbox Cloud Gaming website,
 - Pair the controller in VIDAA before opening the launcher. The header changes to **Pad wykryty** only after the browser exposes it through the Gamepad API.
 - Open **Test połączenia** before starting Xbox Cloud. The value is an HTTP response-time diagnostic, not an Xbox datacenter ping.
 
+### Xbox audio on Hisense C2
+
+The Xbox tile now opens a C2 preflight screen before leaving the launcher. For the cleanest browser-streamed audio, set the projector to **Standard** sound and **PCM/stereo**, disable DTS Virtual:X and Bluetooth audio, and close background VIDAA apps. Use Game Mode with MEMC and noise reduction disabled. Microsoft recommends wired networking or 5 GHz Wi-Fi with at least 20 Mbps.
+
+Hisense VIDAA is not currently listed among Microsoft's officially supported Xbox TV platforms; Microsoft lists select LG, Samsung, and Fire TV devices. The launcher can prepare the connection and request fullscreen, but it cannot replace VIDAA's browser codecs or WebRTC implementation. Persistent crackling therefore requires a supported HDMI client rather than a JavaScript workaround.
+
 ## SSH and the projector
 
 The web launcher cannot enable SSH on VIDAA. Do not expose port 22 on the projector unless Hisense provides an official SSH/developer option for the exact firmware. For remote maintenance, enable key-only SSH on the Linux host that serves Jellyfin or this launcher; see [`docs/ssh.md`](docs/ssh.md).

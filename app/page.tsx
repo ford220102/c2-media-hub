@@ -62,6 +62,7 @@ export default function Home() {
   const [editing, setEditing] = useState(false);
   const [diagnostics, setDiagnostics] = useState(false);
   const [sshOpen, setSshOpen] = useState(false);
+  const [xboxOpen, setXboxOpen] = useState(false);
   const [sshUser, setSshUser] = useState(() => typeof window === "undefined" ? "media" : window.localStorage.getItem(SSH_USER_KEY) || "media");
   const [sshPort, setSshPort] = useState(() => typeof window === "undefined" ? "22" : window.localStorage.getItem(SSH_PORT_KEY) || "22");
   const [copied, setCopied] = useState(false);
@@ -93,6 +94,7 @@ export default function Home() {
           setEditing(false);
           setDiagnostics(false);
           setSshOpen(false);
+          setXboxOpen(false);
         });
       }
       frame = requestAnimationFrame(pollGamepads);
@@ -117,6 +119,13 @@ export default function Home() {
     saveSsh();
     try { await navigator.clipboard.writeText(sshCommand); setCopied(true); }
     catch { setCopied(false); }
+  }
+
+  async function launchXbox() {
+    try {
+      if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+    } catch { /* Fullscreen may be unavailable in VIDAA. */ }
+    window.location.assign(XBOX_URL);
   }
 
   function openJellyfin() {
@@ -177,7 +186,7 @@ export default function Home() {
       </header>
       <section className="hero" aria-label="Wybór usługi">
         <button type="button" ref={jellyfinButton} className="tile jellyfin" onClick={openJellyfin}><span className="tileIndex">01</span><span className="tileMark">J</span><span className="tileTitle">Jellyfin</span><span className="tileMeta">Twoje filmy i seriale</span><span className="tileAction">OTWÓRZ <b>→</b></span></button>
-        <button type="button" className="tile xbox" onClick={() => window.location.assign(XBOX_URL)}><span className="tileIndex">02</span><span className="tileMark">X</span><span className="tileTitle">Xbox Cloud</span><span className="tileMeta">Wymaga zgodnej przeglądarki VIDAA</span><span className="tileAction">URUCHOM <b>→</b></span></button>
+        <button type="button" className="tile xbox" onClick={() => setXboxOpen(true)}><span className="tileIndex">02</span><span className="tileMark">X</span><span className="tileTitle">Xbox Cloud</span><span className="tileMeta">Tryb niskiego opóźnienia dla C2</span><span className="tileAction">PRZYGOTUJ <b>→</b></span></button>
         <button type="button" className="tile ssh" onClick={() => { setSshOpen(true); setCopied(false); }}><span className="tileIndex">03</span><span className="tileMark">›_</span><span className="tileTitle">SSH</span><span className="tileMeta">Dane bezpiecznego dostępu do hosta</span><span className="tileAction">POKAŻ IP <b>→</b></span></button>
       </section>
       <footer><div className="footerActions"><button type="button" className="settings" onClick={editAddress}>⚙ Jellyfin</button><button type="button" className="settings" onClick={() => setDiagnostics(true)}>Test połączenia</button></div><p>Strzałki / D-pad · OK / A</p></footer>
@@ -185,6 +194,7 @@ export default function Home() {
       {editing && <dialog open className="overlay" aria-labelledby="dialog-title"><form className="dialog" onSubmit={(event) => { event.preventDefault(); saveAddress(); }}><p className="eyebrow">KONFIGURACJA</p><h2 id="dialog-title">Adres serwera Jellyfin</h2><p className="hint">Najmniejsze opóźnienie daje lokalny adres serwera w tej samej sieci.</p><input inputMode="url" autoComplete="off" value={draft} onChange={(event) => setDraft(event.target.value)} placeholder="192.168.1.20:8096" aria-label="Adres serwera Jellyfin" />{message && <p className="message" role="alert">{message}</p>}<div className="dialogActions"><button type="button" onClick={() => setEditing(false)}>Anuluj</button><button type="submit" className="primary">Zapisz</button></div></form></dialog>}
       {diagnostics && <dialog open className="overlay" aria-labelledby="diagnostics-title"><div className="dialog"><p className="eyebrow">DIAGNOSTYKA</p><h2 id="diagnostics-title">Sieć i urządzenia</h2><pre className="result" aria-live="polite">{testResult}</pre><p className="hint">Do Jellyfin wybieraj Direct Play H.264/AAC. Transkodowanie, HDR i napisy graficzne mogą powodować zacięcia.</p><div className="dialogActions"><button type="button" onClick={() => setDiagnostics(false)}>Zamknij</button><button type="button" className="primary" onClick={runDiagnostics}>Uruchom test</button></div></div></dialog>}
       {sshOpen && <dialog open className="overlay" aria-labelledby="ssh-title"><form className="dialog" onSubmit={(event) => { event.preventDefault(); saveSsh(); }}><p className="eyebrow">DOSTĘP ZDALNY</p><h2 id="ssh-title">SSH do hosta</h2><p className="hint">Adres hosta tej strony został wykryty automatycznie. SSH musi być wcześniej uruchomione na tym hoście przez <code>scripts/setup-ssh-host.sh</code>.</p><div className="sshGrid"><label>IP / host<input value={sshHost} readOnly /></label><label>Użytkownik<input value={sshUser} onChange={(event) => setSshUser(event.target.value)} autoComplete="username" /></label><label>Port<input value={sshPort} onChange={(event) => setSshPort(event.target.value)} inputMode="numeric" /></label></div><pre className="result">{sshCommand}</pre>{copied && <output className="message">Komenda skopiowana.</output>}<div className="dialogActions"><button type="button" onClick={() => setSshOpen(false)}>Zamknij</button><button type="button" onClick={copySshCommand}>Kopiuj komendę</button><button type="submit" className="primary">Zapisz</button></div></form></dialog>}
+      {xboxOpen && <dialog open className="overlay" aria-labelledby="xbox-title"><div className="dialog xboxDialog"><p className="eyebrow">TRYB XBOX · HISENSE C2</p><h2 id="xbox-title">Przygotowanie bez trzasków i laga</h2><ol className="checklist"><li><b>Sieć:</b> Ethernet albo Wi‑Fi 5 GHz/6E, minimum 20 Mb/s. Nie używaj 2,4 GHz.</li><li><b>Obraz C2:</b> włącz Tryb Gra; wyłącz MEMC, redukcję szumów i inne ulepszacze obrazu.</li><li><b>Dźwięk C2:</b> wybierz Standard oraz PCM/stereo. Wyłącz DTS Virtual:X i dźwięk Bluetooth na czas gry.</li><li><b>Pad:</b> sparuj przed startem; nagłówek launchera powinien pokazywać „Pad wykryty”.</li><li><b>VIDAA:</b> zamknij aplikacje w tle. Jeśli dźwięk nadal charczy, użyj wspieranego urządzenia Xbox/Fire TV przez HDMI.</li></ol><p className="compatibility">Hisense VIDAA nie znajduje się na oficjalnej liście telewizorów Xbox Cloud; launcher nie może zmienić kodeków ani WebRTC systemowej przeglądarki.</p><div className="dialogActions"><button type="button" onClick={() => setXboxOpen(false)}>Wróć</button><button type="button" onClick={() => { setXboxOpen(false); setDiagnostics(true); }}>Test sieci</button><button type="button" className="primary" onClick={launchXbox}>Pełny ekran i uruchom</button></div></div></dialog>}
     </main>
   );
 }

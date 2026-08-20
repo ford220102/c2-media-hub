@@ -11,10 +11,12 @@ test("published VIDAA launcher contains all services and real diagnostics", asyn
   assert.match(html, /Jellyfin/);
   assert.match(html, /https:\/\/www\.xbox\.com\/play/);
   assert.match(html, /navigator\.getGamepads/);
-  assert.match(html, />SSH</);
+  assert.match(html, />\s*SSH/);
   assert.match(html, /<dialog open/);
   assert.match(html, /System\/Info\/Public/);
   assert.match(html, /cdn-cgi\/trace/);
+  assert.match(html, /requestFullscreen/);
+  assert.match(html, /PCM\/stereo/);
   assert.doesNotMatch(html, /Pad gotowy/);
 });
 
@@ -23,6 +25,8 @@ test("React launcher keeps URL validation, gamepad controls and diagnostics", as
   assert.match(page, /parsed\.username \|\| parsed\.password/);
   assert.match(page, /navigator\.getGamepads/);
   assert.match(page, /sshCommand/);
+  assert.match(page, /requestFullscreen/);
+  assert.match(page, /PCM\/stereo/);
   assert.match(page, /<dialog open/);
   assert.match(page, /requestAnimationFrame/);
   assert.match(page, /System\/Info\/Public/);
