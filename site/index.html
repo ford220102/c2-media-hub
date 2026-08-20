@@ -328,7 +328,12 @@
           old = {};
         function url(v) {
           v = (v || "").trim();
-          if (v && !/^https?:\/\//i.test(v)) v = "http://" + v;
+          if (v && !/^https?:\/\//i.test(v)) {
+            var protocol = ["http:", "https:"].includes(location.protocol)
+              ? location.protocol
+              : "https:";
+            v = protocol + "//" + v;
+          }
           try {
             var p = new URL(v);
             return /^(http|https):$/.test(p.protocol) &&
@@ -336,7 +341,8 @@
               !p.password
               ? p.href
               : "";
-          } catch (e) {
+          } catch (error) {
+            console.warn("Niepoprawny adres URL", error);
             return "";
           }
         }
@@ -364,11 +370,11 @@
           close();
         }
         function focusMove(step) {
-          var a = [].slice
-              .call(document.querySelectorAll("button,input"))
-              .filter(function (el) {
+          var a = Array.from(document.querySelectorAll("button,input")).filter(
+              function (el) {
                 return el.offsetParent !== null;
-              }),
+              },
+            ),
             i = Math.max(0, a.indexOf(document.activeElement));
           if (a.length) a[(i + step + a.length) % a.length].focus();
         }
@@ -376,12 +382,14 @@
           var user = document.getElementById("suser").value.trim(),
             port = document.getElementById("sport").value.trim();
           if (!/^[a-z_][a-z0-9_-]{0,31}$/i.test(user)) user = "media";
+          var portNumber = Number(port);
           if (
-            !/^([1-9]|[1-9][0-9]{1,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])$/.test(
-              port,
-            )
+            !Number.isInteger(portNumber) ||
+            portNumber < 1 ||
+            portNumber > 65535
           )
             port = "22";
+          else port = String(portNumber);
           return {
             user: user,
             port: port,
@@ -407,46 +415,45 @@
           sb.className = "overlay";
           j.focus();
         }
+        function buttonEdge(gamepad, index) {
+          var pressed = !!(
+              gamepad.buttons[index] && gamepad.buttons[index].pressed
+            ),
+            edge = pressed && !old[index];
+          old[index] = pressed;
+          return edge;
+        }
+        function closeOpenOverlay() {
+          if (o.className.includes("open")) close();
+          if (d.className.includes("open")) d.className = "overlay";
+          if (sb.className.includes("open")) sshClose();
+          if (xb.className.includes("open")) xb.className = "overlay";
+          j.focus();
+        }
+        function handleGamepad(gamepad) {
+          var now = performance.now(),
+            axis = gamepad.axes[1] || 0;
+          if (buttonEdge(gamepad, 12) || (axis < -0.65 && now - last > 220)) {
+            focusMove(-1);
+            last = now;
+          }
+          if (buttonEdge(gamepad, 13) || (axis > 0.65 && now - last > 220)) {
+            focusMove(1);
+            last = now;
+          }
+          if (buttonEdge(gamepad, 0) && document.activeElement)
+            document.activeElement.click();
+          if (buttonEdge(gamepad, 1)) closeOpenOverlay();
+        }
         function poll() {
           var list = navigator.getGamepads ? navigator.getGamepads() : [],
-            g = [].slice.call(list).filter(Boolean)[0];
+            g = Array.from(list).find(Boolean);
           pad = !!g;
           padEl.className = "status" + (pad ? " connected" : "");
           padEl.innerHTML =
             '<i class="dot"></i>' +
             (pad ? "Pad wykryty" : "Pilot gotowy · pad niewykryty");
-          if (g) {
-            var now = performance.now(),
-              edge = function (i) {
-                var v = !!(g.buttons[i] && g.buttons[i].pressed),
-                  e = v && !old[i];
-                old[i] = v;
-                return e;
-              },
-              axis = g.axes[1] || 0;
-            if (edge(12) || (axis < -0.65 && now - last > 220)) {
-              focusMove(-1);
-              last = now;
-            }
-            if (edge(13) || (axis > 0.65 && now - last > 220)) {
-              focusMove(1);
-              last = now;
-            }
-            if (edge(0) && document.activeElement)
-              document.activeElement.click();
-            if (edge(1)) {
-              if (o.className.indexOf("open") > 0) close();
-              if (d.className.indexOf("open") > 0) {
-                d.className = "overlay";
-                j.focus();
-              }
-              if (sb.className.indexOf("open") > 0) sshClose();
-              if (xb.className.indexOf("open") > 0) {
-                xb.className = "overlay";
-                j.focus();
-              }
-            }
-          }
+          if (g) handleGamepad(g);
           requestAnimationFrame(poll);
         }
         async function test() {
@@ -459,7 +466,9 @@
               { mode: "no-cors", cache: "no-store" },
             );
             online = true;
-          } catch (e) {}
+          } catch (error) {
+            console.warn("Test internetu nie powiódł się", error);
+          }
           var ms = Math.round(performance.now() - start),
             jf = url(localStorage.getItem(key)),
             server = "adres nieustawiony";
@@ -470,17 +479,15 @@
                 cache: "no-store",
               });
               server = "osiągalny";
-            } catch (e) {
+            } catch (error) {
+              console.warn("Test Jellyfin nie powiódł się", error);
               server = "brak odpowiedzi / blokada CORS";
             }
           }
-          var q = !online
-            ? "Brak internetu — sprawdź sieć."
-            : ms <= 60
-              ? "Dobre warunki do grania w chmurze."
-              : ms <= 120
-                ? "Możliwe wyczuwalne opóźnienie."
-                : "Duże opóźnienie — użyj Ethernetu lub Wi-Fi 5 GHz.";
+          var q = "Duże opóźnienie — użyj Ethernetu lub Wi-Fi 5 GHz.";
+          if (!online) q = "Brak internetu — sprawdź sieć.";
+          else if (ms <= 60) q = "Dobre warunki do grania w chmurze.";
+          else if (ms <= 120) q = "Możliwe wyczuwalne opóźnienie.";
           res.textContent =
             "Internet: " +
             (online ? "OK" : "BŁĄD") +
@@ -515,7 +522,9 @@
           try {
             if (!document.fullscreenElement)
               await document.documentElement.requestFullscreen();
-          } catch (e) {}
+          } catch (error) {
+            console.warn("Pełny ekran jest niedostępny", error);
+          }
           location.href = "https://www.xbox.com/play";
         };
         document.getElementById("ssh").onclick = sshShow;
@@ -535,7 +544,8 @@
           try {
             await navigator.clipboard.writeText(v.cmd);
             document.getElementById("smsg").textContent = "Komenda skopiowana.";
-          } catch (e) {
+          } catch (error) {
+            console.warn("Nie udało się skopiować komendy", error);
             document.getElementById("smsg").textContent =
               "Skopiuj komendę ręcznie.";
           }
