@@ -3,6 +3,7 @@ name: Build and Publish
 on:
   push:
     branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -29,25 +30,22 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Configure native dependencies
-        run: |
-          printf '%s\n' \
-            'allowBuilds:' \
-            '  esbuild: true' \
-            '  sharp: true' \
-            '  workerd: true' \
-            'verifyDepsBeforeRun: false' \
-            > pnpm-workspace.yaml
       - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
       - run: pnpm build
+      - run: node --test tests/rendered-html.test.mjs
       - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
         with:
           name: c2-media-hub-build
           path: dist/
       - uses: actions/configure-pages@v5
+        if: github.event_name != 'pull_request'
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name != 'pull_request'
         with:
           path: site
       - name: Publish GitHub Pages
+        if: github.event_name != 'pull_request'
         id: deployment
         uses: actions/deploy-pages@v4
